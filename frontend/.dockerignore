@@ -1,0 +1,12 @@
+node_modules
+dist
+**/.vs
+**/.git
+**/.gitignore
+**/Dockerfile*
+**/.dockerignore
+docker-compose*.yaml
+.gitlab-ci.yml
+npm-debug.log
+**/.DS_Store
+README.md

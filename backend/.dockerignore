@@ -1,0 +1,11 @@
+**/bin
+**/obj
+**/.vs
+**/*.user
+**/.git
+**/.gitignore
+**/Dockerfile*
+**/.dockerignore
+docker-compose*.yaml
+.gitlab-ci.yml
+README.md

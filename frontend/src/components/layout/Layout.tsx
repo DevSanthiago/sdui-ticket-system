@@ -11,10 +11,14 @@ import { useLayout } from "../../hooks/layout/useLayout";
 import { useChecklistRealtime } from "../../hooks/checklist/useChecklistRealtime";
 import { useTicketNotifications } from "../../hooks/notifications/useTicketNotifications";
 import { NotificationSoundMenu } from "../notifications/NotificationSoundMenu";
+import { KioskControlMenu } from "../kiosk/KioskControlMenu";
+import { KioskAndonView } from "../kiosk/KioskAndonView";
+import { KioskHeatmapView } from "../kiosk/KioskHeatmapView";
+import { useKioskView } from "../../hooks/kiosk/useKioskView";
 import { STORAGE_KEYS } from "../../constants/storage/storageKeys";
 
 import {
-    AnimatedUser, AnimatedSun, AnimatedSunMoon, AnimatedArrowBigLeftDash, AnimatedMapPinHouse, AnimatedEarth, AnimatedLogOut
+    AnimatedUser, AnimatedSun, AnimatedSunMoon, AnimatedArrowBigLeftDash, AnimatedMapPinHouse, AnimatedEarth
 } from "../icons/NewAnimatedIcons";
 import logoImg from "../../assets/img/new-logo-transparent-branding.svg";
 
@@ -26,7 +30,6 @@ export const Layout = () => {
         isProfileHovered, setIsProfileHovered,
         isLogoutHovered, setIsLogoutHovered,
         isPlantHovered, setIsPlantHovered,
-        isExitKioskHovered, setIsExitKioskHovered,
         isPlantMenuOpen, togglePlantMenu, plantMenuRef,
         toggleColorMode, handlePlantSelect, handleLogout, handleExitKiosk
     } = useLayout();
@@ -34,6 +37,7 @@ export const Layout = () => {
     const location = useLocation();
     const { isOpen: isMenuOpen, onOpen: onMenuOpen, onClose: onMenuClose } = useDisclosure();
     const isKiosk = localStorage.getItem(STORAGE_KEYS.KIOSK) === "true";
+    const { view: kioskView, setView: setKioskView } = useKioskView();
 
     useChecklistRealtime(!isKiosk);
     useTicketNotifications();
@@ -45,30 +49,21 @@ export const Layout = () => {
 
         return (
             <Box h="100dvh" bg={isDark ? "black" : "gray.50"} overflow="hidden" position="relative">
-                <Outlet />
-                <VStack position="fixed" bottom={6} right={6} zIndex={50} spacing={3} align="center">
-                    <Box
-                        bg={isDark ? "whiteAlpha.200" : "blackAlpha.100"}
-                        color={isDark ? "white" : "gray.800"}
-                        borderRadius="full"
-                        boxShadow="lg"
-                    >
-                        <NotificationSoundMenu isDark={isDark} placement="top" />
-                    </Box>
-                    <IconButton
-                        aria-label="Sair do modo painel"
-                        icon={<AnimatedLogOut size={24} isHovered={isExitKioskHovered} />}
-                        onClick={handleExitKiosk}
-                        onMouseEnter={() => setIsExitKioskHovered(true)}
-                        onMouseLeave={() => setIsExitKioskHovered(false)}
-                        isRound size="lg"
-                        bg={isDark ? "whiteAlpha.200" : "blackAlpha.100"}
-                        color={isDark ? "white" : "gray.800"}
-                        boxShadow="lg"
-                        _hover={{ bg: "red.500", color: "white", transform: "scale(1.05)" }}
-                        transition="all 0.2s"
+                {kioskView === "andon" ? (
+                    <KioskAndonView />
+                ) : kioskView === "heatmap" ? (
+                    <KioskHeatmapView />
+                ) : (
+                    <Outlet />
+                )}
+                <Box position="fixed" bottom={6} right={6} zIndex={50}>
+                    <KioskControlMenu
+                        isDark={isDark}
+                        currentView={kioskView}
+                        onSelectView={setKioskView}
+                        onExit={handleExitKiosk}
                     />
-                </VStack>
+                </Box>
             </Box>
         );
     }

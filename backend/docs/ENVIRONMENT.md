@@ -36,7 +36,9 @@ Todos os valores sensíveis vêm como **placeholders** — preencha para rodar:
 | `Jwt:Issuer` / `Jwt:Audience` | issuer/audience do token interno |
 | `Kiosk:ApiKey` | device key do modo kiosk (TV) |
 | `AccessControlAPI:BaseUrl` | URL de um provedor de identidade externo (login delegado) — aponte para o seu |
-| `Support*:GroupLink` | links de grupo (ex.: WhatsApp) por departamento |
+| `GoogleChat:TicketsWebhookUrl` | webhook do espaço do Google Chat que recebe o card do e-ticket na abertura do chamado |
+
+> **Integração Google Chat (opcional):** ao abrir um ticket, o backend posta um card (cardsV2) no Google Chat via `GoogleChat:TicketsWebhookUrl`. É **fire-and-forget** — sem a URL ele só não envia, sem quebrar a criação do ticket. O backend precisa de saída HTTPS para `chat.googleapis.com`. A URL é segredo (placeholder no `appsettings`).
 
 ## Rodar
 

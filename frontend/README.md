@@ -60,6 +60,20 @@ O app se adapta aos tamanhos de tela sem virar outro sistema visual. Escopo: tel
 - **Pílulas de departamento:** container `overflowX="auto"` + itens `flexShrink={0}` `whiteSpace="nowrap"` (tamanho real, sem sobreposição, rola na horizontal).
 - **Padrões:** breakpoints do Chakra (`{ base, md, lg }`) em padding/fonte/colunas; tabelas em `TableContainer`; estado vazio com `textAlign="center"` + `maxW`.
 
+## Notificações e e-ticket (Google Chat)
+
+- **Som por departamento:** `useTicketNotifications` toca o alerta de novo ticket só quando o `departmentId` do evento pertence a um departamento que o usuário atende (roles ∩ `allowedRoles`, em `helpers/notificationScope.ts`); `admin` e kiosk ouvem todos. O refetch do board segue global.
+- **E-ticket:** ao abrir o ticket, `TicketSuccessModal` mostra a imagem gerada (`useETicketGenerator` + html2canvas) e avisa que o sistema **enviou o card automaticamente ao Google Chat** — o envio é feito no backend.
+
+## Modo kiosk
+
+- Ativado pela device key (card no `/login` ou URL `/login?key=...&plant=...`). Token de longa duração com role `kiosk-display`.
+- Alterna entre **Painel de Tickets**, **Andon** e **Heatmap** (mesmas visualizações, sem chrome de admin) por um menu único (`KioskControlMenu`) na ordem **escolher painel → alerta sonoro → sair**. A escolha persiste (`useKioskView` → `ticket_system_kiosk_view`), sobrevivendo a recargas na TV.
+
+## Cards de Analytics no Cockpit
+
+A seção **Analytics** do Cockpit lista, além de Andon e Heatmap, os atalhos **Downtime Live** e **Downtime Histórico** (rotas `/analytics/downtime-geral` e `/analytics/downtime-historico`), com grid de 4 cards por linha.
+
 ## Como rodar
 
 Pré-requisitos: Node 20+ e o backend rodando (`http://localhost:5029` — ver repo ticket-system-backend).

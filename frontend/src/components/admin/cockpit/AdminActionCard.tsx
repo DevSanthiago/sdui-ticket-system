@@ -18,7 +18,7 @@ export const AdminActionCard = ({
 
     return (
         <Box
-            p={6} bg={theme.cardBg} borderRadius="xl" borderWidth="1px"
+            p={4} bg={theme.cardBg} borderRadius="xl" borderWidth="1px"
             display="flex" flexDirection="column"
             borderColor={isActionHovered ? activeBorder : theme.cardBorder}
             boxShadow={isActionHovered ? activeShadow : "none"}
@@ -27,7 +27,7 @@ export const AdminActionCard = ({
             onMouseEnter={() => setIsActionHovered(true)}
             onMouseLeave={() => setIsActionHovered(false)}
         >
-            <VStack align="start" spacing={4} flex={1}>
+            <VStack align="start" spacing={3} flex={1}>
                 <HStack>
                     <SkeletonCircle size="6" isLoaded={!loading}>
                         <Box color={theme.iconColor}
@@ -37,7 +37,7 @@ export const AdminActionCard = ({
                         </Box>
                     </SkeletonCircle>
                     <Skeleton isLoaded={!loading} borderRadius="md">
-                        <Heading size="md" color={theme.textPrimary}
+                        <Heading size="sm" color={theme.textPrimary}
                             textShadow={isActionHovered ? activeTextShadow : "none"}
                             transition="text-shadow 0.3s ease">
                             {title}

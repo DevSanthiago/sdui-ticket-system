@@ -19,7 +19,7 @@ export const CockpitStatCard = ({
 
     return (
         <Box
-            p={6} bg={theme.cardBg} borderRadius="xl" borderWidth="1px"
+            p={4} bg={theme.cardBg} borderRadius="xl" borderWidth="1px"
             display="flex" flexDirection="column" h="100%"
             borderColor={cardHovered ? activeBorder : theme.cardBorder}
             boxShadow={cardHovered ? activeShadow : "none"}
@@ -31,7 +31,7 @@ export const CockpitStatCard = ({
             <Flex flex={1} justify="space-between" align="center" w="100%">
                 <HStack spacing={4} align="center">
                     <Skeleton isLoaded={!loading} borderRadius="md">
-                        <Text fontSize={{ base: "5xl", md: "6xl" }} fontWeight="black"
+                        <Text fontSize={{ base: "4xl", md: "5xl" }} fontWeight="black"
                             lineHeight="1" color={theme.textPrimary} letterSpacing="tighter"
                             textShadow={cardHovered ? activeTextShadowStrong : "none"}
                             transition="text-shadow 0.3s ease">
@@ -66,7 +66,7 @@ export const CockpitStatCard = ({
             </Flex>
 
             {actionLabel && (
-                <Skeleton isLoaded={!loading} w="100%" mt={6} borderRadius="md">
+                <Skeleton isLoaded={!loading} w="100%" mt={4} borderRadius="md">
                     <Button bg={theme.buttonBg} color={theme.textPrimary}
                         borderWidth="1px" borderColor={theme.cardBorder} size="sm"
                         onClick={onActionClick} w="100%"

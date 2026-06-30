@@ -8,7 +8,7 @@ import { AdminActionCard } from "../../components/admin/cockpit/AdminActionCard"
 import {
     AnimatedLayoutPanelTop, AnimatedRoute, AnimatedSettings,
     AnimatedAtom, AnimatedHammer, AnimatedChevronLeft, AnimatedFileCheck2, AnimatedFlame,
-    AnimatedGalleryThumbnails
+    AnimatedGalleryThumbnails, AnimatedClock, AnimatedCloudSync
 } from "../../components/icons/NewAnimatedIcons";
 
 export const CockpitAdminDashboard = () => {
@@ -19,7 +19,7 @@ export const CockpitAdminDashboard = () => {
 
     return (
         <Box h="100%" display="flex" flexDirection="column" bg={theme.bgApp}>
-            <VStack align="start" spacing={6} w="100%" h="100%" p={{ base: 4, md: 8 }} overflow="auto">
+            <VStack align="start" spacing={4} w="100%" h="100%" p={{ base: 4, md: 6 }} overflow="auto">
                 <Box w="100%">
                     <HStack spacing={3} mb={2}>
                         <Skeleton isLoaded={!loading} borderRadius="md">
@@ -80,8 +80,8 @@ export const CockpitAdminDashboard = () => {
                     />
                 </SimpleGrid>
 
-                <Box w="100%" mt={8}>
-                    <Box mb={6}>
+                <Box w="100%" mt={4}>
+                    <Box mb={4}>
                         <Skeleton isLoaded={!loading} w="fit-content" mb={2} borderRadius="md">
                             <Heading size="md" color={theme.textPrimary} whiteSpace="nowrap">
                                 Ações do Administrador
@@ -114,8 +114,8 @@ export const CockpitAdminDashboard = () => {
                     </SimpleGrid>
                 </Box>
 
-                <Box w="100%" mt={8}>
-                    <Box mb={6}>
+                <Box w="100%" mt={4}>
+                    <Box mb={4}>
                         <Skeleton isLoaded={!loading} w="fit-content" mb={2} borderRadius="md">
                             <Heading size="md" color={theme.textPrimary} whiteSpace="nowrap">
                                 Analytics
@@ -128,7 +128,7 @@ export const CockpitAdminDashboard = () => {
                         </Skeleton>
                     </Box>
 
-                    <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={4}>
+                    <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} spacing={4}>
                         <AdminActionCard
                             title="Painel de Calor Andon das Linhas"
                             description="Conecte linhas de produção e acompanhe os chamados em aberto por linha em tempo real."
@@ -143,6 +143,22 @@ export const CockpitAdminDashboard = () => {
                             animatedIcon={<AnimatedFlame size={24} />}
                             buttonText="Acessar Painel"
                             onClick={() => navigate("/cockpit-admin/heatmap-lines")}
+                            loading={loading}
+                        />
+                        <AdminActionCard
+                            title="Downtime Live"
+                            description="Acompanhe o tempo de linha parada das operações em tempo real."
+                            animatedIcon={<AnimatedClock size={24} />}
+                            buttonText="Acessar Painel"
+                            onClick={() => navigate("/analytics/downtime-geral")}
+                            loading={loading}
+                        />
+                        <AdminActionCard
+                            title="Downtime Histórico"
+                            description="Analise o histórico de downtime das linhas por período e departamento."
+                            animatedIcon={<AnimatedCloudSync size={24} />}
+                            buttonText="Acessar Painel"
+                            onClick={() => navigate("/analytics/downtime-historico")}
                             loading={loading}
                         />
                     </SimpleGrid>

@@ -5,6 +5,5 @@ export const LOADING_MESSAGES = [
     "Aguarde só mais um pouco..."
 ];
 
-export const WHATSAPP_GREEN = "#05ad42ff";
 export const LOADING_MESSAGE_INTERVAL_MS = 3000;
 export const ETICKET_RENDER_DELAY_MS = LOADING_MESSAGE_INTERVAL_MS * LOADING_MESSAGES.length;

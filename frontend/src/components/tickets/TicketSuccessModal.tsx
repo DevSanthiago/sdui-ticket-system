@@ -1,16 +1,16 @@
 import React, { useRef } from 'react';
 import {
-    Modal, ModalOverlay, ModalContent, ModalBody, Button,
-    Text, VStack, Box, Icon, Center, useColorModeValue
+    Modal, ModalOverlay, ModalContent, ModalBody,
+    Text, VStack, HStack, Box, Center, useColorModeValue
 } from '@chakra-ui/react';
-import { ReceiptText, MessageCircle } from 'lucide-react';
+import { ReceiptText, MessagesSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mosaic } from 'react-loading-indicators';
 import { useMinimalTheme } from '../../hooks/theme/useMinimalTheme';
 import { useETicketGenerator } from '../../hooks/tickets/useETicketGenerator';
 import { useTicketSuccessModal } from '../../hooks/tickets/useTicketSuccessModal';
 import { ETicketTemplate } from './ETicketTemplate';
-import { LOADING_MESSAGES, WHATSAPP_GREEN } from '../../constants/tickets/ticketSuccessConstants';
+import { LOADING_MESSAGES } from '../../constants/tickets/ticketSuccessConstants';
 import type { TicketSuccessModalProps } from '../../types';
 
 export const TicketSuccessModal: React.FC<TicketSuccessModalProps> = ({
@@ -20,15 +20,13 @@ export const TicketSuccessModal: React.FC<TicketSuccessModalProps> = ({
     const isDarkMode = useColorModeValue(false, true);
     const printRef = useRef<HTMLDivElement>(null);
 
-    const { imagePreview, isGenerating, isCopying, copyImageToClipboard } = useETicketGenerator({
-        isOpen, ticketData, printRef, isDarkMode, onClose
+    const { imagePreview, isGenerating } = useETicketGenerator({
+        isOpen, ticketData, printRef, isDarkMode
     });
 
     const { msgIndex, getModalHeading } = useTicketSuccessModal({
         isGenerating, ticketData, actionType
     });
-
-    const neonShadow = `0 0 15px ${WHATSAPP_GREEN}, 0 0 30px ${WHATSAPP_GREEN}`;
 
     return (
         <>
@@ -50,7 +48,7 @@ export const TicketSuccessModal: React.FC<TicketSuccessModalProps> = ({
                                     {isGenerating && actionType === 'create'
                                         ? "Processando a sua solicitação..."
                                         : actionType === 'create'
-                                            ? "E-Ticket gerado com sucesso! Copie ele no botão abaixo e compartilhe no grupo de chamados do setor correto!"
+                                            ? "E-Ticket gerado com sucesso!"
                                             : "O status do rastreamento foi atualizado."}
                                 </Text>
                             </VStack>
@@ -89,34 +87,22 @@ export const TicketSuccessModal: React.FC<TicketSuccessModalProps> = ({
                                 )}
                             </Box>
 
-                            <Button
-                                w="full" bg={WHATSAPP_GREEN} color="white"
-                                leftIcon={<Icon as={MessageCircle} fill="white" />}
-                                isDisabled={isGenerating} isLoading={isCopying}
-                                onClick={copyImageToClipboard}
-                                borderRadius="xl" size="lg" fontWeight="black"
-                                transition="all 0.3s ease"
-                                _hover={isDarkMode
-                                    ? {
-                                        bg: WHATSAPP_GREEN,
-                                        boxShadow: neonShadow,
-                                        _before: {
-                                            content: '""', position: 'absolute',
-                                            top: 0, left: 0, right: 0, bottom: 0,
-                                            borderRadius: 'xl',
-                                            boxShadow: `inset 0 0 10px white`,
-                                            opacity: 0.5
-                                        }
-                                    }
-                                    : { bg: "#048b35" }
-                                }
-                                sx={isDarkMode
-                                    ? { "&:hover span, &:hover svg": { filter: `drop-shadow(0 0 5px white)` } }
-                                    : {}
-                                }
-                            >
-                                Copiar para o WhatsApp
-                            </Button>
+                            {!isGenerating && actionType === 'create' && (
+                                <HStack
+                                    w="full" spacing={3} align="flex-start"
+                                    bg={isDarkMode ? "whiteAlpha.100" : "blackAlpha.50"}
+                                    border="1px solid" borderColor={theme.cardBorder}
+                                    borderRadius="xl" p={4}
+                                >
+                                    <Box color="#48BB78" pt="2px">
+                                        <MessagesSquare size={20} />
+                                    </Box>
+                                    <Text fontSize="xs" color={theme.textSecondary} lineHeight="1.5">
+                                        O Ticket System gerou o E-Ticket e o enviou automaticamente para o
+                                        canal de chamados no Google Chat. Não é necessário encaminhar manualmente.
+                                    </Text>
+                                </HStack>
+                            )}
                         </VStack>
                     </ModalBody>
                 </ModalContent>

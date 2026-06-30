@@ -10,9 +10,6 @@ import type { Range, RangeKeyDict } from 'react-date-range';
 import type { CurveType } from 'recharts/types/shape/Curve';
 
 export type AvailableIconName = keyof typeof AnimatedIcons;
-export type TicketActionType = 'create' | 'start' | 'resolve';
-export type SupportContactType = 'reset_password' | 'request_access';
-export type TicketDepartment = 'automation' | 'setup' | 'test' | 'software' | string;
 export type DynamicLocationFieldProps = DynamicFieldProps;
 export type LineStopFieldProps = DynamicFieldProps;
 export type CardRadioFieldProps = DynamicFieldProps;
@@ -199,24 +196,6 @@ export interface IconWrapperProps {
 export interface UseIconAnimationOptions {
   loop?: boolean;
   loopInterval?: number;
-}
-
-export interface TicketTechnicianWhatsappTransportProps {
-  ticketId: number;
-  department: TicketDepartment;
-  actionType: TicketActionType;
-  buttonText?: string;
-}
-
-export interface TicketWhatsappTransportProps {
-  ticketId: number;
-  department: TicketDepartment;
-  onSuccess?: () => void;
-}
-
-export interface SupportWhatsappTransportProps {
-  type: SupportContactType;
-  isFullWidth?: boolean;
 }
 
 export interface SubTheme {

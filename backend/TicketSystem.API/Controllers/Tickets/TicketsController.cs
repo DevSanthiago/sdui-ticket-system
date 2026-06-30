@@ -9,6 +9,7 @@ using TicketSystem.API.Domain.Exceptions;
 using TicketSystem.API.Services;
 using TicketSystem.API.Services.Checklists;
 using TicketSystem.API.Services.Realtime;
+using TicketSystem.API.Services.GoogleChat;
 using TicketSystem.API.Authorization;
 using System.Security.Claims;
 using System.Text.Json;
@@ -25,14 +26,16 @@ namespace TicketSystem.API.Controllers
         private readonly IChecklistAssignmentService _checklistAssignment;
         private readonly IChecklistNotifier _checklistNotifier;
         private readonly ITicketNotifier _ticketNotifier;
+        private readonly IGoogleChatNotifier _googleChatNotifier;
 
-        public TicketsController(AppDbContext context, IUserContext userContext, IChecklistAssignmentService checklistAssignment, IChecklistNotifier checklistNotifier, ITicketNotifier ticketNotifier)
+        public TicketsController(AppDbContext context, IUserContext userContext, IChecklistAssignmentService checklistAssignment, IChecklistNotifier checklistNotifier, ITicketNotifier ticketNotifier, IGoogleChatNotifier googleChatNotifier)
         {
             _context = context;
             _userContext = userContext;
             _checklistAssignment = checklistAssignment;
             _checklistNotifier = checklistNotifier;
             _ticketNotifier = ticketNotifier;
+            _googleChatNotifier = googleChatNotifier;
         }
 
         [HttpGet]
@@ -136,6 +139,21 @@ namespace TicketSystem.API.Controllers
                 await _context.SaveChangesAsync();
 
                 await _ticketNotifier.NotifyTicketCreatedAsync(currentPlantId, ticket.Id, ticket.DepartmentId);
+
+                var department = await _context.Departments
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.Id == ticket.DepartmentId && d.PlantId == currentPlantId);
+
+                await _googleChatNotifier.NotifyTicketCreatedAsync(new GoogleChatTicketCard
+                {
+                    TicketId = ticket.Id,
+                    DepartmentName = department?.Name ?? "Departamento",
+                    LineName = productionLine?.LineName,
+                    RequesterName = monitorName,
+                    CreatedAt = ticket.CreatedAt,
+                    IsLineStopped = ticket.IsLineStopped,
+                    Fields = BuildChatFields(department?.FormSchema, dynamicAnswersJson, productionLine?.LineName)
+                }, HttpContext.RequestAborted);
 
                 return CreatedAtAction(nameof(GetAllTickets), new { id = ticket.Id }, new
                 { 
@@ -285,6 +303,98 @@ namespace TicketSystem.API.Controllers
                 throw new UnauthorizedAccessException("Usuário inválido ou não autenticado.");
 
             return (userId, name);
+        }
+
+        private static List<GoogleChatTicketField> BuildChatFields(string? formSchemaJson, string answersJson, string? lineName)
+        {
+            var fields = new List<GoogleChatTicketField>();
+
+            if (string.IsNullOrWhiteSpace(formSchemaJson) || string.IsNullOrWhiteSpace(answersJson))
+                return fields;
+
+            try
+            {
+                using var schemaDoc = JsonDocument.Parse(formSchemaJson);
+                using var answersDoc = JsonDocument.Parse(answersJson);
+
+                if (!schemaDoc.RootElement.TryGetProperty("fields", out var schemaFields)
+                    || schemaFields.ValueKind != JsonValueKind.Array)
+                    return fields;
+
+                var answers = answersDoc.RootElement;
+
+                foreach (var field in schemaFields.EnumerateArray())
+                {
+                    if (!field.TryGetProperty("id", out var idElement)) continue;
+                    var id = idElement.GetString();
+                    if (string.IsNullOrEmpty(id)) continue;
+
+                    if (answers.ValueKind != JsonValueKind.Object
+                        || !answers.TryGetProperty(id, out var answerElement))
+                        continue;
+
+                    var label = field.TryGetProperty("label", out var labelElement)
+                        ? labelElement.GetString() ?? id
+                        : id;
+
+                    var type = field.TryGetProperty("type", out var typeElement)
+                        ? typeElement.GetString() ?? string.Empty
+                        : string.Empty;
+
+                    var value = StringifyAnswer(answerElement);
+                    if (string.IsNullOrWhiteSpace(value)) continue;
+
+                    if ((type == "dynamic_location" || type == "line") && !string.IsNullOrWhiteSpace(lineName))
+                        value = lineName!;
+                    else
+                        value = ResolveOptionLabel(field, value);
+
+                    fields.Add(new GoogleChatTicketField(label, value));
+                }
+            }
+            catch
+            {
+                return fields;
+            }
+
+            return fields;
+        }
+
+        private static string StringifyAnswer(JsonElement answer)
+        {
+            switch (answer.ValueKind)
+            {
+                case JsonValueKind.True:
+                    return "Sim";
+                case JsonValueKind.False:
+                    return "Não";
+                case JsonValueKind.String:
+                    return answer.GetString() ?? string.Empty;
+                case JsonValueKind.Number:
+                    return answer.GetRawText();
+                case JsonValueKind.Array:
+                    return string.Join(", ", answer.EnumerateArray().Select(StringifyAnswer).Where(v => !string.IsNullOrWhiteSpace(v)));
+                default:
+                    return string.Empty;
+            }
+        }
+
+        private static string ResolveOptionLabel(JsonElement field, string value)
+        {
+            if (!field.TryGetProperty("options", out var options) || options.ValueKind != JsonValueKind.Array)
+                return value;
+
+            foreach (var option in options.EnumerateArray())
+            {
+                if (option.TryGetProperty("value", out var optValue)
+                    && string.Equals(StringifyAnswer(optValue), value, StringComparison.Ordinal)
+                    && option.TryGetProperty("label", out var optLabel))
+                {
+                    return optLabel.GetString() ?? value;
+                }
+            }
+
+            return value;
         }
 
         private static object ParseDynamicAnswers(string json)

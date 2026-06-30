@@ -10,6 +10,7 @@ using TicketSystem.API.Services.Analytics.LiveDashboard;
 using TicketSystem.API.Services.Analytics.ExpandedView;
 using TicketSystem.API.Services.Checklists;
 using TicketSystem.API.Services.Realtime;
+using TicketSystem.API.Services.GoogleChat;
 using TicketSystem.API.Hubs;
 using TicketSystem.API.Authorization;
 using TicketSystem.API.Middleware;
@@ -90,6 +91,11 @@ builder.Services.AddHttpClient("AccessControlAPI", client =>
     client.BaseAddress = new Uri("http://localhost:8083");
 });
 
+builder.Services.AddHttpClient(GoogleChatNotifier.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 builder.Services.AddScoped<ExternalAuthService>();
 
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -149,6 +155,7 @@ builder.Services.AddScoped<IChecklistAssignmentService, ChecklistAssignmentServi
 builder.Services.AddSingleton<IChecklistPdfModelBuilder, ChecklistPdfModelBuilder>();
 builder.Services.AddScoped<IChecklistNotifier, ChecklistNotifier>();
 builder.Services.AddScoped<ITicketNotifier, TicketNotifier>();
+builder.Services.AddScoped<IGoogleChatNotifier, GoogleChatNotifier>();
 
 builder.Services.AddSignalR();
 

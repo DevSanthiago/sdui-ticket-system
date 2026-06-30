@@ -13,7 +13,10 @@ api.interceptors.request.use(
     const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     const activePlantId = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLANT);
 
-    if (token) {
+    const url = (config.url ?? '').toLowerCase();
+    const isCredentialEndpoint = url.includes('/auth/login') || url.includes('/auth/kiosk');
+
+    if (token && !isCredentialEndpoint) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 

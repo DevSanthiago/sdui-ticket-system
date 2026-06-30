@@ -26,9 +26,10 @@ namespace TicketSystem.API.Middleware
             if (user?.Identity?.IsAuthenticated == true && user.IsInRole(KioskRole))
             {
                 var isTicketHub = context.Request.Path.StartsWithSegments("/hubs/tickets");
+                var isAuthEndpoint = context.Request.Path.StartsWithSegments("/api/auth");
 
                 var method = context.Request.Method;
-                if (!isTicketHub
+                if (!isTicketHub && !isAuthEndpoint
                     && !HttpMethods.IsGet(method) && !HttpMethods.IsHead(method) && !HttpMethods.IsOptions(method))
                 {
                     await DenyAsync(context, "Dispositivo kiosk possui acesso somente de leitura.");

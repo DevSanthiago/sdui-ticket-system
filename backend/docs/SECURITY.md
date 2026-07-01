@@ -62,7 +62,7 @@ Além da policy, **assumir um ticket** passa por `Department.CanBeManagedBy(user
 
 | Nível | O que pode |
 |---|---|
-| Anônimo | login, login kiosk, listar plantas (ver §5) |
+| Anônimo | login, login kiosk, listar plantas, listar departamentos ativos (ver §5) |
 | Autenticado (qualquer role) | listar/criar tickets, ver board e histórico, checklists próprios, analytics, listar cadastros |
 | Roles fora da blocklist + `AllowedRoles` do depto | assumir/resolver/feedback de tickets |
 | `admin` | tudo + cockpit administrativo + alternar plantas |
@@ -108,6 +108,7 @@ Se `Kiosk:AllowedIps` estiver populado, o middleware valida o IP de origem (IPs 
 | `POST /api/auth/login` | `[AllowAnonymous]` | login |
 | `POST /api/auth/kiosk` | `[AllowAnonymous]` | login de dispositivo — protegido pela device key |
 | `GET /api/plants` | `[AllowAnonymous]` | alimenta o seletor de planta nas telas de login/kiosk; expõe apenas nome/slug das plantas ativas |
+| `GET /api/departments/public` | `[AllowAnonymous]` | alimenta o seletor de departamentos no card de ativação do kiosk (escopo do alerta sonoro); expõe apenas id/nome dos departamentos **ativos** da planta informada em `?plantId` |
 | `GET /api/tickets-history` | ⚠️ **sem `[Authorize]`** | o controller não possui atributo de autorização — o histórico de tickets (incl. respostas dinâmicas) é acessível **sem token**. Ponto de atenção conhecido: avaliar adicionar `[Authorize]` (o frontend já envia token; o impacto é só fechar acesso direto) |
 
 ---

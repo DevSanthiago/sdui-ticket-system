@@ -27,9 +27,18 @@ namespace TicketSystem.API.Services.GoogleChat
             _logger = logger;
         }
 
-        public async Task NotifyTicketCreatedAsync(GoogleChatTicketCard card, CancellationToken cancellationToken = default)
+        public Task NotifyTicketCreatedAsync(GoogleChatTicketCard card, CancellationToken cancellationToken = default)
+            => SendAsync(card with { Event = GoogleChatTicketEvent.Created }, cancellationToken);
+
+        public Task NotifyTicketStartedAsync(GoogleChatTicketCard card, CancellationToken cancellationToken = default)
+            => SendAsync(card with { Event = GoogleChatTicketEvent.Started }, cancellationToken);
+
+        public Task NotifyTicketResolvedAsync(GoogleChatTicketCard card, CancellationToken cancellationToken = default)
+            => SendAsync(card with { Event = GoogleChatTicketEvent.Resolved }, cancellationToken);
+
+        private async Task SendAsync(GoogleChatTicketCard card, CancellationToken cancellationToken)
         {
-            var webhookUrl = _configuration["GoogleChat:TicketsWebhookUrl"];
+            var webhookUrl = ResolveWebhookUrl(card.DepartmentName);
             if (string.IsNullOrWhiteSpace(webhookUrl))
                 return;
 
@@ -55,6 +64,39 @@ namespace TicketSystem.API.Services.GoogleChat
 
         private static object BuildCardPayload(GoogleChatTicketCard card)
         {
+            var (title, widgets) = card.Event switch
+            {
+                GoogleChatTicketEvent.Started => BuildStartedCard(card),
+                GoogleChatTicketEvent.Resolved => BuildResolvedCard(card),
+                _ => BuildCreatedCard(card)
+            };
+
+            return new
+            {
+                cardsV2 = new[]
+                {
+                    new
+                    {
+                        cardId = BuildCardId(card),
+                        card = new
+                        {
+                            header = new
+                            {
+                                title,
+                                subtitle = card.DepartmentName
+                            },
+                            sections = new[]
+                            {
+                                new { widgets = widgets.ToArray() }
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        private static (string Title, List<object> Widgets) BuildCreatedCard(GoogleChatTicketCard card)
+        {
             var title = card.TicketId > 0 ? $"🎫 Novo Ticket #{card.TicketId}" : "🎫 Novo Ticket";
             if (!string.IsNullOrWhiteSpace(card.LineName))
                 title += $" — {card.LineName}";
@@ -73,29 +115,59 @@ namespace TicketSystem.API.Services.GoogleChat
                 widgets.Add(Decorated(field.Label, field.Value));
             }
 
-            return new
-            {
-                cardsV2 = new[]
-                {
-                    new
-                    {
-                        cardId = $"ticket-{card.TicketId}",
-                        card = new
-                        {
-                            header = new
-                            {
-                                title,
-                                subtitle = card.DepartmentName
-                            },
-                            sections = new[]
-                            {
-                                new { widgets = widgets.ToArray() }
-                            }
-                        }
-                    }
-                }
-            };
+            return (title, widgets);
         }
+
+        private static (string Title, List<object> Widgets) BuildStartedCard(GoogleChatTicketCard card)
+        {
+            var title = card.TicketId > 0 ? $"🔧 Em Atendimento #{card.TicketId}" : "🔧 Em Atendimento";
+            if (!string.IsNullOrWhiteSpace(card.LineName))
+                title += $" — {card.LineName}";
+
+            var widgets = new List<object>
+            {
+                Decorated("Técnico", string.IsNullOrWhiteSpace(card.TechnicianName) ? "—" : card.TechnicianName),
+                Decorated("Assumido em", card.StartedAt.HasValue ? FormatDate(card.StartedAt.Value) : "—"),
+                Decorated("Solicitante", string.IsNullOrWhiteSpace(card.RequesterName) ? "—" : card.RequesterName)
+            };
+
+            return (title, widgets);
+        }
+
+        private static (string Title, List<object> Widgets) BuildResolvedCard(GoogleChatTicketCard card)
+        {
+            var title = card.TicketId > 0 ? $"✅ Atendimento Encerrado #{card.TicketId}" : "✅ Atendimento Encerrado";
+            if (!string.IsNullOrWhiteSpace(card.LineName))
+                title += $" — {card.LineName}";
+
+            var widgets = new List<object>
+            {
+                Decorated("Técnico", string.IsNullOrWhiteSpace(card.TechnicianName) ? "—" : card.TechnicianName),
+                Decorated("Encerrado em", card.FinishedAt.HasValue ? FormatDate(card.FinishedAt.Value) : "—")
+            };
+
+            if (card.StartedAt.HasValue && card.FinishedAt.HasValue)
+                widgets.Add(Decorated("Duração", FormatDuration(card.FinishedAt.Value - card.StartedAt.Value)));
+
+            widgets.Add(Decorated("Solicitante", string.IsNullOrWhiteSpace(card.RequesterName) ? "—" : card.RequesterName));
+
+            return (title, widgets);
+        }
+
+        private string? ResolveWebhookUrl(string departmentName)
+        {
+            if (string.IsNullOrWhiteSpace(departmentName))
+                return null;
+
+            return _configuration.GetSection("GoogleChat:DepartmentWebhooks")[departmentName];
+        }
+
+        private static string BuildCardId(GoogleChatTicketCard card) => card.Event switch
+        {
+            GoogleChatTicketEvent.Started => $"ticket-{card.TicketId}-started",
+            GoogleChatTicketEvent.Resolved => $"ticket-{card.TicketId}-resolved",
+            _ => $"ticket-{card.TicketId}"
+        };
 
         private static object Decorated(string topLabel, string text)
             => new { decoratedText = new { topLabel, text } };
@@ -104,6 +176,18 @@ namespace TicketSystem.API.Services.GoogleChat
         {
             var local = TimeZoneInfo.ConvertTime(createdAt, BrazilTimeZone);
             return local.ToString("dd/MM/yyyy HH:mm", CultureInfo.GetCultureInfo("pt-BR"));
+        }
+
+        private static string FormatDuration(TimeSpan duration)
+        {
+            if (duration < TimeSpan.Zero)
+                duration = TimeSpan.Zero;
+
+            var totalMinutes = (int)Math.Round(duration.TotalMinutes);
+            var hours = totalMinutes / 60;
+            var minutes = totalMinutes % 60;
+
+            return hours > 0 ? $"{hours}h {minutes}min" : $"{minutes}min";
         }
 
         private static TimeZoneInfo ResolveBrazilTimeZone()

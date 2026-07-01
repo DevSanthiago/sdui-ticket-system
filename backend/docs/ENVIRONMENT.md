@@ -36,9 +36,17 @@ Todos os valores sensíveis vêm como **placeholders** — preencha para rodar:
 | `Jwt:Issuer` / `Jwt:Audience` | issuer/audience do token interno |
 | `Kiosk:ApiKey` | device key do modo kiosk (TV) |
 | `AccessControlAPI:BaseUrl` | URL de um provedor de identidade externo (login delegado) — aponte para o seu |
-| `GoogleChat:TicketsWebhookUrl` | webhook do espaço do Google Chat que recebe o card do e-ticket na abertura do chamado |
+| `GoogleChat:DepartmentWebhooks` | mapa de webhooks do Google Chat **por departamento** (chave = nome do departamento) que recebem os cards do ciclo de vida do ticket |
 
-> **Integração Google Chat (opcional):** ao abrir um ticket, o backend posta um card (cardsV2) no Google Chat via `GoogleChat:TicketsWebhookUrl`. É **fire-and-forget** — sem a URL ele só não envia, sem quebrar a criação do ticket. O backend precisa de saída HTTPS para `chat.googleapis.com`. A URL é segredo (placeholder no `appsettings`).
+> **Integração Google Chat (opcional):** em cada transição de status do ticket (abertura, início e encerramento), o backend posta um card (cardsV2) no Google Chat. O envio é **roteado por departamento**: o webhook é escolhido pelo nome do departamento do ticket no mapa `GoogleChat:DepartmentWebhooks`. É **fire-and-forget** — departamento sem entrada no mapa só não envia, sem quebrar a operação do ticket. O backend precisa de saída HTTPS para `chat.googleapis.com`. As URLs são segredo (placeholder no `appsettings`). Exemplo:
+>
+> ```json
+> "GoogleChat": {
+>   "DepartmentWebhooks": {
+>     "Nome do Departamento": "https://chat.googleapis.com/v1/spaces/<SPACE>/messages?key=<KEY>&token=<TOKEN>"
+>   }
+> }
+> ```
 
 ## Rodar
 

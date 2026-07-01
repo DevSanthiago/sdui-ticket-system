@@ -167,13 +167,17 @@ Treemap (inspirado no mapa de calor de ações do TradingView) sobre os **mesmos
 - **Tempo real:** mesmo `TicketCreated` do Andon (refetch) + refetch periódico (30 s); o front recolore a cada 1 s a partir do timestamp.
 - Leitura exige autenticação; multi-tenant por `X-Plant-Id`.
 
-### 2.10 Integração Google Chat (envio do e-ticket)
+### 2.10 Integração Google Chat (ciclo de vida do ticket)
 
-Na criação de um ticket, o backend envia um card ao Google Chat (canal de chamados).
+O backend envia um card ao Google Chat em **cada transição de status** do ticket — abertura, início do atendimento e encerramento.
 
-- **`GoogleChatNotifier`** (`Services/GoogleChat`, registrado como `IHttpClientFactory` nomeado): monta um card **cardsV2** com número, linha, solicitante, data, status da linha e os campos dinâmicos (labels/opções resolvidos do `FormSchema`) e faz `POST` no webhook configurado em `GoogleChat:TicketsWebhookUrl`.
-- Chamado pelo `TicketsController` após `SaveChanges` + notificação SignalR, **fire-and-forget**: a falha é logada e nunca quebra o `201`. Sem evento/migration novos.
-- A URL do webhook é segredo e vem por **configuração** (placeholder no `appsettings`); o backend precisa de saída HTTPS para `chat.googleapis.com`. Ver [ENVIRONMENT.md](ENVIRONMENT.md).
+- **`GoogleChatNotifier`** (`Services/GoogleChat`, registrado como `IHttpClientFactory` nomeado) expõe três operações — `NotifyTicketCreatedAsync`, `NotifyTicketStartedAsync` e `NotifyTicketResolvedAsync` —, todas convergindo para um `SendAsync` privado que monta o payload **cardsV2** e faz `POST` no webhook do grupo. O card é escolhido pelo evento (`GoogleChatTicketEvent`):
+  - **🎫 Novo Ticket** (abertura): número, linha, solicitante, data, status da linha e os campos dinâmicos (resolvidos do `FormSchema`).
+  - **🔧 Em Atendimento** (início): enxuto — técnico, data em que assumiu, solicitante.
+  - **✅ Atendimento Encerrado** (resolução): técnico, data de encerramento, duração do atendimento (`FinishedAt − StartedAt`) e solicitante.
+- **Roteamento por departamento:** `SendAsync` resolve o webhook pelo **nome do departamento** do ticket no mapa `GoogleChat:DepartmentWebhooks`. Cada departamento cai no seu próprio grupo; departamento **sem entrada no mapa não envia card** (no-op).
+- Chamado pelo `TicketsController` após `SaveChanges` (na criação, no `start` e no `resolve`), **fire-and-forget**: a falha é logada e nunca quebra a resposta. Sem evento/migration novos.
+- As URLs de webhook são segredo e vêm por **configuração** (placeholder no `appsettings`); o backend precisa de saída HTTPS para `chat.googleapis.com`. Ver [ENVIRONMENT.md](ENVIRONMENT.md).
 
 ---
 
@@ -219,7 +223,7 @@ Princípio central: **componentes JSX só renderizam**; estado, efeitos e regras
 ### 3.3 Camada HTTP e estado
 
 - Instância Axios única (`services/api/api.ts`): `baseURL` de `VITE_API_BASE_URL`; request interceptor injeta `Authorization: Bearer` e `X-Plant-Id`; response interceptor trata `401` (limpa storage → `/login`).
-- **Sem state manager global** (decisão registrada — ADR-003): os 3 valores globais vivem no `localStorage` e os interceptors resolvem a injeção. Chaves: `ticket_system_auth_token`, `ticket_system_active_plant`, `ticket_user`, `ticket_system_kiosk`, `ticket_system_kiosk_view`, `ticket_system_sound_alert_*`.
+- **Sem state manager global** (decisão registrada — ADR-003): os 3 valores globais vivem no `localStorage` e os interceptors resolvem a injeção. Chaves: `ticket_system_auth_token`, `ticket_system_active_plant`, `ticket_user`, `ticket_system_kiosk`, `ticket_system_kiosk_view`, `ticket_system_kiosk_departments`, `ticket_system_sound_alert_*`.
 - Realtime: hooks dedicados conectam aos hubs com `accessTokenFactory` (token via query) e reconexão automática.
 
 ### 3.4 Formulários dinâmicos (server-driven)
@@ -260,6 +264,7 @@ A **árvore é uma projeção** dos `dependsOn` em tempo de edição — o schem
 - `useKioskAuth` chama `POST /api/auth/kiosk` com a device key → token de longa duração com role `kiosk-display`; grava flag `ticket_system_kiosk` e navega para `/tickets/board`.
 - UI esconde ações de gestão; o backend reforça read-only por middleware (ver [SECURITY.md](SECURITY.md#modo-kiosk)). O `KioskAccessMiddleware` isenta `/api/auth` do bloqueio read-only (senão a própria reativação do kiosk, que vai autenticada pelo interceptor, seria barrada com 403).
 - **Seletor de painel + controle unificado:** além do board, o kiosk alterna entre os painéis **Andon** e **Heatmap** (mesmas visualizações do Cockpit, sem o chrome de admin). Os controles ficam num único menu (`KioskControlMenu`) na ordem **escolher painel → alerta sonoro → sair**; a escolha persiste em `ticket_system_kiosk_view` (`useKioskView`).
+- **Alerta sonoro por departamento:** na ativação, o kiosk pode ser escopado a um ou mais departamentos (multi-seleção no card de login, populada por `GET /api/departments/public`, ou via query `?departments=1,3` na URL da TV). Os ids ficam em `ticket_system_kiosk_departments` e `useTicketNotifications` toca o alerta só para eles; sem seleção, mantém o padrão de ouvir todos. Escopo puramente client-side (o hub já é por planta) — não altera a auth device-key nem a expiração longa do kiosk.
 
 ### 3.7 Painel de Calor Andon das linhas
 
@@ -289,7 +294,7 @@ O front se adapta aos tamanhos de tela sem segundo sistema visual (breakpoints C
 
 ### 3.10 Notificações sonoras e e-ticket (Google Chat)
 
-- **Som por departamento:** `useTicketNotifications` toca o alerta de novo ticket **apenas** quando o `departmentId` do evento `TicketCreated` está entre os departamentos que o usuário atende (roles do usuário ∩ `allowedRoles`, resolvido em `helpers/notificationScope.ts`); `admin` e `kiosk-display` ouvem todos. A atualização do board (refetch) permanece global.
+- **Som por departamento:** `useTicketNotifications` toca o alerta de novo ticket **apenas** quando o `departmentId` do evento `TicketCreated` está entre os departamentos que o usuário atende (roles do usuário ∩ `allowedRoles`, resolvido em `helpers/notificationScope.ts`); `admin` ouve todos. O `kiosk-display` ouve todos por padrão, mas pode ser **escopado por departamento** na ativação (ver §3.6) — quando escopado, toca só os departamentos escolhidos. A atualização do board (refetch) permanece global.
 - **E-ticket → Google Chat:** ao abrir o ticket o `TicketSuccessModal` exibe a imagem gerada (html2canvas) e um aviso de que o sistema **enviou o card automaticamente ao Google Chat** (envio é server-side — ver §2.10).
 
 ### 3.11 Cockpit — seção Analytics

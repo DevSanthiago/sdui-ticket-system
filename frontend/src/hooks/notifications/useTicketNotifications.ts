@@ -9,6 +9,8 @@ import {
     getUserRoleNames,
     userHearsAllDepartments,
     computeAttendedDepartmentIds,
+    isKioskSession,
+    getKioskDepartmentIds,
 } from "../../helpers/notificationScope";
 
 interface TicketCreatedPayload {
@@ -32,19 +34,26 @@ export const useTicketNotifications = (enabled = true) => {
         const plantId = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLANT) ?? "";
 
         const roleNames = getUserRoleNames();
-        hearsAllRef.current = userHearsAllDepartments(roleNames);
-        attendedDeptIdsRef.current = new Set();
+        const kioskDepartmentIds = isKioskSession() ? getKioskDepartmentIds() : [];
 
-        if (!hearsAllRef.current) {
-            api.get<{ id: number; allowedRoles: string[] }[]>(
-                `${API_ENDPOINTS.ACTIONS_PANEL.GET_ALL}?includeInactive=true`
-            )
-                .then(({ data }) => {
-                    attendedDeptIdsRef.current = computeAttendedDepartmentIds(data ?? [], roleNames);
-                })
-                .catch((error) => {
-                    console.error("Falha ao resolver departamentos atendidos para o som de notificação", error);
-                });
+        if (kioskDepartmentIds.length > 0) {
+            hearsAllRef.current = false;
+            attendedDeptIdsRef.current = new Set(kioskDepartmentIds);
+        } else {
+            hearsAllRef.current = userHearsAllDepartments(roleNames);
+            attendedDeptIdsRef.current = new Set();
+
+            if (!hearsAllRef.current) {
+                api.get<{ id: number; allowedRoles: string[] }[]>(
+                    `${API_ENDPOINTS.ACTIONS_PANEL.GET_ALL}?includeInactive=true`
+                )
+                    .then(({ data }) => {
+                        attendedDeptIdsRef.current = computeAttendedDepartmentIds(data ?? [], roleNames);
+                    })
+                    .catch((error) => {
+                        console.error("Falha ao resolver departamentos atendidos para o som de notificação", error);
+                    });
+            }
         }
 
         const connection = new HubConnectionBuilder()

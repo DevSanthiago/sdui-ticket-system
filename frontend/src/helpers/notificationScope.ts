@@ -22,6 +22,20 @@ export const getUserRoleNames = (): string[] => {
 export const userHearsAllDepartments = (roleNames: string[]): boolean =>
     roleNames.some(role => ALWAYS_HEAR_ROLES.includes(normalizeRole(role)));
 
+export const parseDepartmentIds = (csv: string | null | undefined): number[] => {
+    if (!csv) return [];
+    return csv
+        .split(",")
+        .map(part => Number(part.trim()))
+        .filter(id => Number.isInteger(id) && id > 0);
+};
+
+export const isKioskSession = (): boolean =>
+    localStorage.getItem(STORAGE_KEYS.KIOSK) === "true";
+
+export const getKioskDepartmentIds = (): number[] =>
+    parseDepartmentIds(localStorage.getItem(STORAGE_KEYS.KIOSK_DEPARTMENTS));
+
 export const computeAttendedDepartmentIds = (
     departments: { id: number; allowedRoles: string[] }[],
     roleNames: string[]

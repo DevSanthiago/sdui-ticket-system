@@ -200,7 +200,8 @@ namespace TicketSystem.API.Controllers
 
                 var ticket = await _context.Tickets
                     .Include(t => t.Department)
-                    .FirstOrDefaultAsync(t => t.Id == id && t.PlantId == currentPlantId); 
+                    .Include(t => t.ProductionLine)
+                    .FirstOrDefaultAsync(t => t.Id == id && t.PlantId == currentPlantId);
 
                 if (ticket == null)
                     return NotFound(new { message = "Ticket não encontrado nesta unidade." });
@@ -209,8 +210,18 @@ namespace TicketSystem.API.Controllers
                     return BadRequest(new { message = "Ticket inválido: Departamento não associado." });
 
                 ticket.Start(technicianId, technicianName, userRoles);
-        
+
                 await _context.SaveChangesAsync();
+
+                await _googleChatNotifier.NotifyTicketStartedAsync(new GoogleChatTicketCard
+                {
+                    TicketId = ticket.Id,
+                    DepartmentName = ticket.Department.Name,
+                    LineName = ticket.ProductionLine?.LineName,
+                    RequesterName = ticket.MonitorName,
+                    TechnicianName = ticket.TechnicianName,
+                    StartedAt = ticket.StartedAt
+                }, HttpContext.RequestAborted);
 
                 return Ok(new { message = "Ticket assumido com sucesso!" });
             }
@@ -234,7 +245,9 @@ namespace TicketSystem.API.Controllers
                 var (technicianId, _) = GetCurrentUser();
 
                 var ticket = await _context.Tickets
-                    .FirstOrDefaultAsync(t => t.Id == id && t.PlantId == currentPlantId); 
+                    .Include(t => t.Department)
+                    .Include(t => t.ProductionLine)
+                    .FirstOrDefaultAsync(t => t.Id == id && t.PlantId == currentPlantId);
 
                 if (ticket == null)
                     return NotFound(new { message = "Ticket não encontrado nesta unidade." });
@@ -251,6 +264,17 @@ namespace TicketSystem.API.Controllers
 
                 if (applicableTemplate != null)
                     await _checklistNotifier.NotifyChangedAsync(ticket.MonitorId);
+
+                await _googleChatNotifier.NotifyTicketResolvedAsync(new GoogleChatTicketCard
+                {
+                    TicketId = ticket.Id,
+                    DepartmentName = ticket.Department?.Name ?? "Departamento",
+                    LineName = ticket.ProductionLine?.LineName,
+                    RequesterName = ticket.MonitorName,
+                    TechnicianName = ticket.TechnicianName,
+                    StartedAt = ticket.StartedAt,
+                    FinishedAt = ticket.FinishedAt
+                }, HttpContext.RequestAborted);
 
                 return Ok(new
                 {

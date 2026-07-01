@@ -42,6 +42,23 @@ namespace TicketSystem.API.Controllers
             return Ok(response);
         }
 
+        [HttpGet("public")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetActiveByPlant([FromQuery] int plantId)
+        {
+            if (plantId <= 0)
+                return BadRequest(new { message = "Planta inválida." });
+
+            var departments = await _context.Departments
+                .Where(d => d.PlantId == plantId && d.IsActive)
+                .AsNoTracking()
+                .OrderBy(d => d.Name)
+                .Select(d => new { d.Id, d.Name })
+                .ToListAsync();
+
+            return Ok(departments);
+        }
+
         [HttpGet("{id}")]
         [Authorize]
         public async Task<IActionResult> GetById(int id)

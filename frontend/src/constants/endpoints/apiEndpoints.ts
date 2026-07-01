@@ -41,6 +41,7 @@
   },
   DEPARTMENTS: {
     BASE: '/departments',
+    PUBLIC: '/departments/public',
     CREATE: '/departments',
     UPDATE: (id: number) => `/departments/${id}`,
     DELETE: (id: number) => `/departments/${id}`,

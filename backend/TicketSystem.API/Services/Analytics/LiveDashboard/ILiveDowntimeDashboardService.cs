@@ -6,5 +6,5 @@ namespace TicketSystem.API.Services.Analytics.LiveDashboard;
 
 public interface ILiveDowntimeDashboardService
 {
-    Task<DowntimeDashboardDto> GetLiveAnalyticsAsync(int? plantId, int? departmentId, string shift, CancellationToken cancellationToken);
+    Task<DowntimeDashboardDto> GetLiveAnalyticsAsync(int? plantId, int? departmentId, string? shift, CancellationToken cancellationToken);
 }

@@ -125,7 +125,7 @@ ChecklistStatus { NotRequired = 0, Pending = 1, Completed = 2 }
 
 | Hub | Rota | Evento | Agrupamento | Consumo |
 |---|---|---|---|---|
-| `TicketHub` | `/hubs/tickets` | `TicketCreated(ticketId, departmentId)` | grupo `plant-{plantId}` (admin pode trocar via query; demais usam a claim) | board e kiosks atualizam em tempo real + alerta sonoro (tocado só para quem atende o departamento do ticket; ver Frontend §3.10) |
+| `TicketHub` | `/hubs/tickets` | `TicketCreated(ticketId, departmentId)` · `TicketChanged(ticketId, departmentId, status)` | grupo `plant-{plantId}` (admin pode trocar via query; demais usam a claim) | board e kiosks atualizam em tempo real: `TicketCreated` (abertura) refaz o board **e** toca o alerta sonoro (só para quem atende o departamento; ver Frontend §3.10); `TicketChanged` (assumir/encerrar) refaz o board em todos os clientes **sem** som |
 | `ChecklistHub` | `/hubs/checklists` | `ChecklistChanged()` | por `UserId` | notifica o usuário quando um checklist é gerado/muda de status |
 
 - WebSocket não envia header `Authorization` — o cliente manda o JWT como query string `access_token`, lido em `JwtBearerEvents.OnMessageReceived` apenas para os paths `/hubs/tickets` e `/hubs/checklists`.

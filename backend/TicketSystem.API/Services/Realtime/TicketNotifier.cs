@@ -7,6 +7,7 @@ namespace TicketSystem.API.Services.Realtime
     public class TicketNotifier : ITicketNotifier
     {
         private const string TicketCreatedEvent = "TicketCreated";
+        private const string TicketChangedEvent = "TicketChanged";
 
         private readonly IHubContext<TicketHub> _hub;
 
@@ -23,6 +24,16 @@ namespace TicketSystem.API.Services.Realtime
             return _hub.Clients
                 .Group(TicketHub.PlantGroup(plantId))
                 .SendAsync(TicketCreatedEvent, new { ticketId, departmentId });
+        }
+
+        public Task NotifyTicketChangedAsync(int plantId, int ticketId, int departmentId, string status)
+        {
+            if (plantId <= 0)
+                return Task.CompletedTask;
+
+            return _hub.Clients
+                .Group(TicketHub.PlantGroup(plantId))
+                .SendAsync(TicketChangedEvent, new { ticketId, departmentId, status });
         }
     }
 }

@@ -74,6 +74,10 @@ export const useTicketNotifications = (enabled = true) => {
             window.dispatchEvent(new Event(TICKET_CREATED_EVENT));
         });
 
+        connection.on("TicketChanged", () => {
+            window.dispatchEvent(new Event(TICKET_CREATED_EVENT));
+        });
+
         let cancelled = false;
 
         connection.start()
@@ -89,6 +93,7 @@ export const useTicketNotifications = (enabled = true) => {
         return () => {
             cancelled = true;
             connection.off("TicketCreated");
+            connection.off("TicketChanged");
             if (connection.state === HubConnectionState.Connected) {
                 connection.stop().catch(() => { });
             }

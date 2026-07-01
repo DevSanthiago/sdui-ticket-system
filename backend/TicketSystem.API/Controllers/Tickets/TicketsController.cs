@@ -213,6 +213,8 @@ namespace TicketSystem.API.Controllers
 
                 await _context.SaveChangesAsync();
 
+                await _ticketNotifier.NotifyTicketChangedAsync(currentPlantId, ticket.Id, ticket.DepartmentId, ticket.Status.ToString());
+
                 await _googleChatNotifier.NotifyTicketStartedAsync(new GoogleChatTicketCard
                 {
                     TicketId = ticket.Id,
@@ -264,6 +266,8 @@ namespace TicketSystem.API.Controllers
 
                 if (applicableTemplate != null)
                     await _checklistNotifier.NotifyChangedAsync(ticket.MonitorId);
+
+                await _ticketNotifier.NotifyTicketChangedAsync(currentPlantId, ticket.Id, ticket.DepartmentId, ticket.Status.ToString());
 
                 await _googleChatNotifier.NotifyTicketResolvedAsync(new GoogleChatTicketCard
                 {
